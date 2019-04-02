@@ -1,0 +1,9 @@
+/* CSS for FYPXBlock */
+
+.fyp_block .count {
+    font-weight: bold;
+}
+
+.fyp_block p {
+    cursor: pointer;
+}
