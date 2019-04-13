@@ -608,10 +608,8 @@
             this.sendCommand(msg,callback);
         },
         sendInvitation: function(to, room_name, reason, callback){
-            var msg = "<message to='"+to+"'><x xmlns='http://jabber.org/protocol/muc#user'><invite to='"+room_name+"'><reason>"+reason+"</reason></invite></x></message>";
-            console.log('sending' + msg);
-            this.sendCommand(msg, callback);
-
+            msg = "INVITE|" + reason + "|" + to;
+            this.sendGroupMessage(room_name, msg, callback);
         },
         /**
         * Change the presence
@@ -681,14 +679,14 @@
             $.each(response.find("message"),function(i,element){
                 try{
                     var e = $(element);
-                    var inv_e = e.find("invite");
-                    if (inv_e.html() === null) {
-                        res = {from: e.attr("from"), body: e.find(".body").html(),attributes:e[0].attributes,data:response.children()};
-                        xmpp.onMessage(res);
+                    res = {from: e.attr("from"), body: e.find(".body").html(),attributes:e[0].attributes,data:response.children()};
+                    if (res.body.startsWith("INVITE")) {
+                        inv = res.body.split('|');
+                        res = {from: e.attr("from"), reason: inv[1], to: inv[2]};
+                        xmpp.onInvitation(res);
                     }
                     else {
-                        res = {from: e.attr("from"), reason: inv_e.find("reason").html(), to: inv_e.attr("to")};
-                        xmpp.onInvitation(res);
+                        xmpp.onMessage(res);
                     }
                 }catch(e){}
             });
