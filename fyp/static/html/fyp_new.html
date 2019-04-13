@@ -1,9 +1,31 @@
 <div class="fyp_block">
 	<section id="demo">
 	    <div class="vertical-align">
-	        <div class="container">
+			<div class="container" width=device-width>
+			<div class="container">
+				<div id="joinDiscussionModal" class="modal" style="display:none">
+						  <div class="modal-content col-sm-6 col-sm-offset-3">
+							<div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+								</button>
+							  </div>
+							  <div class="modal-body">
+								<p id="inv_reason">Someone raised a question. Do you want to join the discussion?</p>
+							  </div>
+							  <div class="modal-footer">
+								<button id="accept_inv" type="button" class = "btn btn-primary">Yes, I will</button>
+								<button id="decline_inv" type="button" class ="btn btn-secondary" data-dismiss="modal">Thank you, next</button>
+							  </div>
+						</div>
+				</div>
 	            <div class="row">
-	                <div class="col-sm-6 col-sm-offset-3 col-xs-offset-0">
+					<div class="col-sm-6 col-sm-offset-1">
+	            		<div class= "no-border">
+	            		<iframe width="600" height="690" src="https://www.youtube.com/embed/hdsKr1q2loc"></iframe>
+					</div>
+					</div>
+	                <div class="col-sm-4">
 	                    <div class="card no-border">
 	                        <div id="chat">
 	                            <form action="" method="GET" class="hidden">
@@ -13,7 +35,8 @@
 	                    </div>
 	                </div>
 	            </div>
-	        </div>
+			</div>
+			</div>
 	    </div>
 	</section>
 </div>

@@ -5,6 +5,7 @@ import pkg_resources
 from xblock.core import XBlock
 from xblock.fields import Integer, Scope
 from xblock.fragment import Fragment
+from realtime_help import provider
 
 
 class FYPXBlock(XBlock):
@@ -26,6 +27,16 @@ class FYPXBlock(XBlock):
         help="A simple counter, to show something happening",
     )
     '''
+    '''
+    room_id_to_owner_display_name = Dict(
+        help='Mapping from room ID to its owner\'s display name',
+        scope=Scope.user_state_summary, default={})
+    '''
+    ejab = provider.Factory.get_default_provider()
+    _TA_ids = ['ta1@fyp', 'ta2@fyp']
+
+    def reg_account(self, jid):
+        self.ejab.register_user(jid, jid)
 
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
@@ -38,19 +49,23 @@ class FYPXBlock(XBlock):
         The primary view of the FYPXBlock, shown to students
         when viewing courses.
         """
+        jid = str(self.scope_ids.user_id)
+        self.reg_account(jid)
         html = self.resource_string("static/html/fyp_new.html")
         frag = Fragment(html.format(self=self))
         #frag.add_css(self.resource_string("static/css/fyp.css"))
         frag.add_css(self.resource_string("static/css/demo.css"))
         frag.add_css(self.resource_string("static/css/jquery.convform.css"))
-        frag.add_css(self.resource_string("static/css/jquery.convform.min.css"))
-        frag.add_css(unicode("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"))
+        frag.add_css_url("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css")
         #frag.add_javascript(self.resource_string("static/js/src/fyp.js"))
-        frag.add_javascript(self.resource_string("static/js/src/jquery-1.12.3.min.js"))
+        frag.add_javascript("var jid = '%s@fyp';" % (jid))
+        frag.add_javascript(self.resource_string("static/js/src/jquery.xmpp.js"))
         frag.add_javascript(self.resource_string("static/js/src/autosize.min.js"))
         frag.add_javascript(self.resource_string("static/js/src/jquery.convform.js"))
         frag.add_javascript(self.resource_string("static/js/src/fyp_new.js"))
-        #frag.initialize_js('FYPXBlock')
+        frag.add_javascript_url("https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js")
+        #frag.add_javascript_url("https://code.jquery.com/jquery-3.4.0.min.js")
+        frag.initialize_js('Chat');
         return frag
 
     # TO-DO: change this handler to perform your own actions.  You may need more
@@ -65,6 +80,22 @@ class FYPXBlock(XBlock):
 
         self.count += 1
         return {"count": self.count}
+    
+    @XBlock.json_handler
+    def find_users(self, data, suffix=''):
+        jid = str(self.scope_ids.user_id)
+        assert data['find'] == 1
+        res = {'TA_available': False, 'TA': [], 'STU': []}
+        online_jids = self.ejab.get_helper_jids(jid)
+        for user_prime in online_jids:
+            user = user_prime.split('/')[0]
+            if user in self._TA_ids:
+                res['TA_available'] = True
+                res['TA'].append(user)
+            else:
+                res['STU'].append(user)
+        return res
+
 
     # TO-DO: change this to create the scenarios you'd like to see in the
     # workbench while developing your XBlock.
