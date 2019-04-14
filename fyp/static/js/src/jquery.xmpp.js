@@ -608,8 +608,8 @@
             this.sendCommand(msg,callback);
         },
         sendInvitation: function(to, room_name, reason, callback){
-            msg = "INVITE|" + reason + "|" + to;
-            this.sendGroupMessage(room_name, msg, callback);
+            msg = "INVITE|" + reason + "|" + room_name;
+            this.sendGroupMessage(to, msg, callback);
         },
         /**
         * Change the presence
@@ -619,6 +619,12 @@
         joinRoom: function(jid, room_id, nickname, callback){
             var msg;
             msg = "<presence from='"+jid+"' to='"+room_id+"/"+nickname+"'><x xmlns='http://jabber.org/protocol/muc'/></presence>";
+            console.log(msg);
+            this.sendCommand(msg,callback);
+        },
+        quitRoom: function(jid, room_id, nickname, callback){
+            var msg;
+            msg = "<presence from='"+jid+"' to='"+room_id+"/"+nickname+"' type='unavailable' />";
             console.log(msg);
             this.sendCommand(msg,callback);
         },

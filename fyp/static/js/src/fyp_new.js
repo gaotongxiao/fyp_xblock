@@ -1,25 +1,29 @@
-var server_addr = "http://1cbf2ac9.ngrok.io";
+var server_addr = "http://model.dyfyp.club:8081";
 var xmpp_server_addr = "http://ejab.dyfyp.club:8081/http-bind"
 function Chat(runtime, element) {
-    var public_room = 'room3@ejab.dyfyp.club:8081';
+    var public_room = 'room3@conference.localhost';
     var current_room = null;
+    var mode = 0; // 0: robot; 1: TA; 2: Room
     function join_room(jid, room, callback) {
         if (current_room === null) {
             $.xmpp.joinRoom(jid, room, jid.split('@')[0], callback);
         }
         else {
-            $.xmpp.quitRoom(jid, current_room, jid.split('@')[0], function(){
+            $.xmpp.quitRoom(jid, current_room, jid.split('@')[0], function(data){
                 $.xmpp.joinRoom(jid, room, jid.split('@')[0], callback);
-                current_room = room;
             });
         }
+        current_room = room;
+    }
+    function append_message(message) {
+        $("#messages").append("<div class=\"message to ready\">"+ message + "</div>");
+        $(".conv-form-wrapper").find('#messages').stop().animate({scrollTop: $(".conv-form-wrapper").find('#messages')[0].scrollHeight}, 600);
     }
     jQuery(function($){
         var count = 0;
         var temp_res = null;
         var user_question = null;
         var findUserUrl = runtime.handlerUrl(element, 'find_users');
-        var mode = 0; // 0: robot; 1: TA; 2: Room
         var score_threshold = 0.3;
         var convForm = $('#chat').convform({eventList:{onInputSubmit: function(convState, ready) {
             function alert_fail() {
@@ -69,13 +73,6 @@ function Chat(runtime, element) {
             else {
                 user_question = convState.current.answer.value;
                 if (mode == 0) {
-			mode = 2;
-			jid_name = jid.split('@')[0];
-			room_name = "room" + jid_name + "@conference.localhost";
-			reason = jid_name + "asked: " + user_question;
-			$.xmpp.sendInvitation(public_room, room_name, reason);
-			//join_room(jid, room_name);
-/*
                     $.ajax({
                         url: server_addr + "/predict",
                         type: 'POST',
@@ -106,9 +103,15 @@ function Chat(runtime, element) {
                                                 mode = 2;
                                                 jid_name = jid.split('@')[0];
                                                 room_name = "room" + jid_name + "@conference.localhost";
-                                                reason = jid_name + "asked: " + user_question;
+                                                reason = jid_name + " asked: " + user_question + ", are you willing to help?";
                                                 $.xmpp.sendInvitation(public_room, room_name, reason);
                                                 join_room(jid, room_name);
+                                                convState.current.next = convState.newState({
+                                                    type: 'input',
+                                                    questions: ["发动群众的力量！"]
+                                                });
+                                                ready();
+                                                convForm.dialogue=0;
                                             }
                                         }
                                     });
@@ -129,22 +132,15 @@ function Chat(runtime, element) {
                         error: function(res){
                                     return alert_fail();
                         }
-                    });*/
+                    });
                 }
                 else { 
                     // TA mode or public mode
                     $.xmpp.sendGroupMessage(current_room, user_question, function(res){
-                        setTimeout(function(){
-                            $('.message.typing').remove();
-                        }, 200);
-                        console.log(res);
                     });
                 }
             }
         }}});
-    });
-    $(document).ready(function(){
-        console.log(jid.split('@')[0]);
         $.xmpp.connect({url: xmpp_server_addr, jid: jid, password: jid.split('@')[0], 
             onConnect: function(){
                 $.xmpp.setPresence(null);
@@ -153,15 +149,19 @@ function Chat(runtime, element) {
             onMessage: function(message){
                 if (message.from.split('/')[1] != jid.split('@')[0]){
                     text_message = message.from.split('/')[1] + ": " + message.body;
-                    $("#messages").append("<div class=\"message to ready\">"+ text_message + "</div>");
-                    $(".conv-form-wrapper").find('#messages').stop().animate({scrollTop: $(".conv-form-wrapper").find('#messages')[0].scrollHeight}, 600);
+                    append_message(text_message)
                 }
             },
             onInvitation: function(invitation){
                 if (invitation.from.split('/')[1] != jid.split('@')[0]){
                     $("#inv_reason").html(invitation.reason);
                     $("#accept_inv").click(function(){
-                        join_room(jid, invitation.room);
+                        join_room(jid, invitation.to, function(){
+                            append_message("Started the chat with " + invitation.from.split('/')[1] + ".");
+                        });
+                        convForm.dialogue=0;
+                        document.getElementById('joinDiscussionModal').style.display = "none";
+                        mode = 2;
                     });
                     var modal = document.getElementById('joinDiscussionModal');
                     modal.style.display = "block";
@@ -193,5 +193,7 @@ function Chat(runtime, element) {
                 modal.style.display = "none";
             }
         }
+    });
+    $(document).ready(function(){
     });
 }
