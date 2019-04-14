@@ -714,9 +714,9 @@
                     var e = $(element);
                     var status;
                     if(e.attr("type") != null){
-						status = e.attr("type")
+						status = e.attr("type");
 					}else{
-						status = e.find("show").html()
+						status = e.find("show").html();
 					}
                     xmpp.onPresence({from: e.attr("from"), to: e.attr("to"), show: status});
                 }catch(e){}

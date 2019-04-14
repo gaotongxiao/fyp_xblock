@@ -24,6 +24,7 @@ function Chat(runtime, element) {
         var temp_res = null;
         var user_question = null;
         var findUserUrl = runtime.handlerUrl(element, 'find_users');
+        var checkRoomUserUrl = runtime.handlerUrl(element, 'check_room_users');
         var score_threshold = 0.3;
         var convForm = $('#chat').convform({eventList:{onInputSubmit: function(convState, ready) {
             function alert_fail() {
@@ -98,6 +99,7 @@ function Chat(runtime, element) {
                                                     questions: ['Now you can talk to TA.']
                                                 });
                                                 ready();
+                                                convForm.dialogue=0;
                                             }
                                             else {
                                                 mode = 2;
@@ -108,7 +110,7 @@ function Chat(runtime, element) {
                                                 join_room(jid, room_name);
                                                 convState.current.next = convState.newState({
                                                     type: 'input',
-                                                    questions: ["发动群众的力量！"]
+                                                    questions: ["Invitation has been sent. You've entered the chatroom. Enter \"End\" to end the chatting session."]
                                                 });
                                                 ready();
                                                 convForm.dialogue=0;
@@ -136,8 +138,15 @@ function Chat(runtime, element) {
                 }
                 else { 
                     // TA mode or public mode
-                    $.xmpp.sendGroupMessage(current_room, user_question, function(res){
-                    });
+                    if (user_question == "END") {
+                        mode = 0;
+                        convForm.dialogue = 1;
+                        join_room(jid, public_room);
+                    }
+                    else {
+                        $.xmpp.sendGroupMessage(current_room, user_question, function(res){
+                        });
+                    }
                 }
             }
         }}});
@@ -158,6 +167,7 @@ function Chat(runtime, element) {
                     $("#accept_inv").click(function(){
                         join_room(jid, invitation.to, function(){
                             append_message("Started the chat with " + invitation.from.split('/')[1] + ".");
+                            append_message(invitation.reason);
                         });
                         convForm.dialogue=0;
                         document.getElementById('joinDiscussionModal').style.display = "none";
@@ -166,19 +176,24 @@ function Chat(runtime, element) {
                     var modal = document.getElementById('joinDiscussionModal');
                     modal.style.display = "block";
                 }
+            },
+            onPresence: function(data){
+                if (mode == 2 && data.show == "unavailable" && data.from.split('/')[0] == current_room) {
+                    var msg = data.from.split('/')[1] + " left the chat.";
+                    console.log(msg);
+                    $.ajax({
+                        url: checkRoomUserUrl,
+                        type: 'POST',
+                        data: JSON.stringify({'room': current_room}), 
+                        contentType: 'application/json; charset=utf-8',
+                        success: function(data) {
+                            msg += " Now the room has " + data.user_num + " other users now.";
+                            append_message(msg);
+                        }
+                    });
+                }
             }
         });
-        /*
-        function close_box(){
-			var box = document.getElementById("popup-box")
-			if(box.style.display ==="none"){
-				box.style.display = "block";
-			}
-			else{
-				box.style.display = "none";
-			}
-        }
-        */
 		// Get the modal
         var modal = document.getElementById('joinDiscussionModal');
         var span = document.getElementsByClassName("close")[0];

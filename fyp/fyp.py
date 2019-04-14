@@ -8,6 +8,7 @@ from xblock.fragment import Fragment
 from realtime_help import provider
 
 
+@XBlock.wants('user')
 class FYPXBlock(XBlock):
     """
     TO-DO: document what your XBlock does.
@@ -49,7 +50,8 @@ class FYPXBlock(XBlock):
         The primary view of the FYPXBlock, shown to students
         when viewing courses.
         """
-        jid = str(self.scope_ids.user_id)
+        #jid = str(self.scope_ids.user_id)
+        jid = str(self.runtime.service(self, 'user').get_current_user().opt_attrs['edx-platform.username'] );
         self.reg_account(jid)
         html = self.resource_string("static/html/fyp_new.html")
         frag = Fragment(html.format(self=self))
@@ -83,7 +85,7 @@ class FYPXBlock(XBlock):
     
     @XBlock.json_handler
     def find_users(self, data, suffix=''):
-        jid = str(self.scope_ids.user_id)
+        jid = str(self.runtime.service(self, 'user').get_current_user().opt_attrs['edx-platform.username'] );
         assert data['find'] == 1
         res = {'TA_available': False, 'TA': [], 'STU': []}
         online_jids = self.ejab.get_helper_jids(jid)
@@ -96,6 +98,12 @@ class FYPXBlock(XBlock):
                 res['STU'].append(user)
         return res
 
+    @XBlock.json_handler
+    def check_room_users(self, data, suffix=''):
+        online_users = self.ejab.get_room_occupants(data['room'].split('@')[0])
+        res = {}
+        res['user_num'] = len(online_users) - 1
+        return res
 
     # TO-DO: change this to create the scenarios you'd like to see in the
     # workbench while developing your XBlock.
