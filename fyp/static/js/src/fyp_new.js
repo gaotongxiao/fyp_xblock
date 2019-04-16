@@ -105,12 +105,12 @@ function Chat(runtime, element) {
                                                 mode = 2;
                                                 jid_name = jid.split('@')[0];
                                                 room_name = "room" + jid_name + "@conference.localhost";
-                                                reason = jid_name + " asked: " + user_question + ", are you willing to help?";
+                                                reason = user_question;
                                                 $.xmpp.sendInvitation(public_room, room_name, reason);
                                                 join_room(jid, room_name);
                                                 convState.current.next = convState.newState({
                                                     type: 'input',
-                                                    questions: ["Invitation has been sent. You've entered the chatroom. Enter \"End\" to end the chatting session."]
+                                                    questions: ["Invitation has been sent. You've entered the chatroom. Enter \"END\" to end the chatting session."]
                                                 });
                                                 ready();
                                                 convForm.dialogue=0;
@@ -141,7 +141,9 @@ function Chat(runtime, element) {
                     if (user_question == "END") {
                         mode = 0;
                         convForm.dialogue = 1;
-                        join_room(jid, public_room);
+                        join_room(jid, public_room, function(){
+                            append_message("The chatting session is ended.");
+                        });
                     }
                     else {
                         $.xmpp.sendGroupMessage(current_room, user_question, function(res){
@@ -157,17 +159,18 @@ function Chat(runtime, element) {
             },
             onMessage: function(message){
                 if (message.from.split('/')[1] != jid.split('@')[0]){
-                    text_message = message.from.split('/')[1] + ": " + message.body;
+                    text_message = "<b>" + message.from.split('/')[1] + "</b>: " + message.body;
                     append_message(text_message)
                 }
             },
             onInvitation: function(invitation){
-                if (invitation.from.split('/')[1] != jid.split('@')[0]){
-                    $("#inv_reason").html(invitation.reason);
+                from_jid = invitation.from.split('/')[1]
+                if (from_jid != jid.split('@')[0]){
+                    $("#inv_reason").html("User <b>" + from_jid + "</b> is asking for help: <br/>" + invitation.reason);
                     $("#accept_inv").click(function(){
                         join_room(jid, invitation.to, function(){
-                            append_message("Started the chat with " + invitation.from.split('/')[1] + ".");
-                            append_message(invitation.reason);
+                            append_message("Started the chat with <b>" + invitation.from.split('/')[1] + "</b>.");
+                            append_message("<b>" + from_jid + "</b>: " + invitation.reason);
                         });
                         convForm.dialogue=0;
                         document.getElementById('joinDiscussionModal').style.display = "none";
@@ -179,7 +182,7 @@ function Chat(runtime, element) {
             },
             onPresence: function(data){
                 if (mode == 2 && data.show == "unavailable" && data.from.split('/')[0] == current_room) {
-                    var msg = data.from.split('/')[1] + " left the chat.";
+                    var msg = "<b>" + data.from.split('/')[1] + "</b> left the chat.";
                     console.log(msg);
                     $.ajax({
                         url: checkRoomUserUrl,
@@ -187,7 +190,7 @@ function Chat(runtime, element) {
                         data: JSON.stringify({'room': current_room}), 
                         contentType: 'application/json; charset=utf-8',
                         success: function(data) {
-                            msg += " Now the room has " + data.user_num + " other users now.";
+                            msg += "<br/>There are " + data.user_num + " other users in this room.";
                             append_message(msg);
                         }
                     });
