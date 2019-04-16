@@ -34,6 +34,23 @@ function Chat(runtime, element) {
                 });
                 ready();
             }
+            function ret_sim_ques(Q, res) {
+                for (i = 0; i < res['ids'].length; i++) {
+                    Q += "<hr /><a target=\"_blank\" href=https://stackoverflow.com/questions/" + res['ids'][i] + ">" + res['best_title'][i] + "</a>";
+                }
+                convState.current.next = convState.newState({
+                    type: 'input',
+                    questions: [Q],
+                    noAnswer: true
+                });
+                convState.current.next.next = convState.newState({
+                    type: 'select',
+                    questions: ['You may also ask for other\'s help'],
+                    answers: [ {text:'Find Help', value:'fh'},
+                                {text:'No, Thanks', value:'nt' }]
+                });
+                ready();
+            }
             if(convState.current.answer.value==='eval:1' || convState.current.answer.value==='eval:2' || convState.current.answer.value==='eval:3') {
                 //convState.current.next = false;
                 //emulating random response time (100-600ms)
@@ -71,6 +88,52 @@ function Chat(runtime, element) {
                     }
                 });
             } 
+            else if (convState.current.answer.value==='nt') {
+                convState.current.next = convState.newState({
+                    type: 'input',
+                    questions: ['OK! Feel free to ask me more questions.']
+                });
+                ready();
+            }
+            else if (convState.current.answer.value==='hn') {
+                ret_sim_ques("I'm sorry, but I also found some similar questions to help you:", temp_res);
+            }
+            else if(convState.current.answer.value==='fh') {
+                $.ajax({
+                    url: findUserUrl,
+                    type: 'POST',
+                    data: JSON.stringify({'find': 1}), 
+                    contentType: 'application/json; charset=utf-8',
+                    success: function(data) {
+                        if (data.TA_available == true) {
+                            mode = 1;
+                            TA_room = data.TA[0].split('@')[0] + "@conference.localhost";
+                            // join room
+                            join_room(jid, TA_room);
+                            convState.current.next = convState.newState({
+                                type: 'input',
+                                questions: ['Found a matched TA for you. Enter \"END\" to end the session.']
+                            });
+                            ready();
+                            convForm.dialogue=0;
+                        }
+                        else {
+                            mode = 2;
+                            jid_name = jid.split('@')[0];
+                            room_name = "room" + jid_name + "@conference.localhost";
+                            reason = user_question;
+                            $.xmpp.sendInvitation(public_room, room_name, reason);
+                            join_room(jid, room_name);
+                            convState.current.next = convState.newState({
+                                type: 'input',
+                                questions: ["Invitation has been sent, you can wait for other's response. Enter \"END\" to stop waiting."]
+                            });
+                            ready();
+                            convForm.dialogue=0;
+                        }
+                    }
+                });
+            }
             else {
                 user_question = convState.current.answer.value;
                 if (mode == 0) {
@@ -83,50 +146,25 @@ function Chat(runtime, element) {
                         success: function(res){
                                 temp_res = res;
                                 if (res["agm"] < score_threshold) {
-                                    $.ajax({
-                                        url: findUserUrl,
-                                        type: 'POST',
-                                        data: JSON.stringify({'find': 1}), 
-                                        contentType: 'application/json; charset=utf-8',
-                                        success: function(data) {
-                                            if (data.TA_available == true) {
-                                                mode = 1;
-                                                TA_room = data.TA[0].split('@')[0] + "@conference.localhost";
-                                                // join room
-                                                join_room(jid, TA_room);
-                                                convState.current.next = convState.newState({
-                                                    type: 'input',
-                                                    questions: ['Now you can talk to TA.']
-                                                });
-                                                ready();
-                                                convForm.dialogue=0;
-                                            }
-                                            else {
-                                                mode = 2;
-                                                jid_name = jid.split('@')[0];
-                                                room_name = "room" + jid_name + "@conference.localhost";
-                                                reason = user_question;
-                                                $.xmpp.sendInvitation(public_room, room_name, reason);
-                                                join_room(jid, room_name);
-                                                convState.current.next = convState.newState({
-                                                    type: 'input',
-                                                    questions: ["Invitation has been sent. You've entered the chatroom. Enter \"END\" to end the chatting session."]
-                                                });
-                                                ready();
-                                                convForm.dialogue=0;
-                                            }
-                                        }
-                                    });
+                                    Q = "I'm not sure about the answer, but I found some similar questions to help you:";
+                                    ret_sim_ques(Q, res);
                                 }
                                 else {
                                     convState.current.next = convState.newState({
                                         type: 'input',
                                         noAnswer: true,
-                                        questions: [res["best_p"]]
+                                        questions: [res["best_p"][0]]
                                     });
                                     convState.current.next.next = convState.newState({
                                         type: 'input',
-                                        questions: [res["best_a"]]
+                                        noAnswer: true,
+                                        questions: [res["best_a"][0]]
+                                    });
+                                    convState.current.next.next.next = convState.newState({
+                                        type: 'select',
+                                        questions: ['Does that help you?'],
+                                        answers: [ {text:'Yes', value:'nt'},
+                                                    {text:'No', value:'hn' }]
                                     });
                                     ready();
                                 }
@@ -190,7 +228,7 @@ function Chat(runtime, element) {
                         data: JSON.stringify({'room': current_room}), 
                         contentType: 'application/json; charset=utf-8',
                         success: function(data) {
-                            msg += "<br/>There are " + data.user_num + " other users in this room.";
+                            msg += "<br/>" + data.user_num + " other users in this room.";
                             append_message(msg);
                         }
                     });
