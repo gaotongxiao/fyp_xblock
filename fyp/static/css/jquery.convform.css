@@ -1,7 +1,7 @@
 
 .typing_loader{
-    width: 18px;
-    height: 18px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     -webkit-animation: typing 1s linear infinite alternate;
     -moz-animation: typing 1s linear infinite alternate;
@@ -95,7 +95,7 @@ form.convFormDynamic textarea.userInputDynamic {
     outline: none;
     font-size: 0.905rem;
     float: left;
-    width: calc(100% - 150px);
+    width: calc(52%);
     line-height: 1.3em;
     min-height: 1.7em;
     /*max-height: 10rem;*/
@@ -114,16 +114,30 @@ form.convFormDynamic input.userInputDynamic {
     width: calc(100% - 70px);
     line-height: 1.3em;
     min-height: 1.7em;
-    /*max-height: 10rem;*/
+    max-height: 10rem;
     display: block;
     max-width: 88%;
     margin-right: 2.5%;
 }
 
+div.conv-form-wrapper:after {
+    content: '';
+    display: block;
+    clear: both;
+    width: 100%;
+    height: 1px;
+}
+
 div.conv-form-wrapper div#messages {
-    /*max-height: 71vh;*/
+    max-height: 71vh;
     height: auto !important;
     overflow-y: scroll;
+    scrollbar-width: none;
+    -ms-overflow-style: none; /* IE 11 */
+}
+div.conv-form-wrapper * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 div.conv-form-wrapper div#messages:after {
     content: '';
@@ -135,8 +149,8 @@ div.conv-form-wrapper {
 }
 div.conv-form-wrapper div.wrapper-messages {
     position: relative;
-    height: 600px;
-    /*max-height: 71vh;*/
+    height: 577px;
+    max-height: 71vh;
     overflow-y: scroll;
     transition: margin 0.1s;
 }
